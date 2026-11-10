@@ -25,7 +25,7 @@
   },
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3001",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1 --port 3001",
     "test": "node --test backend/tests/*.test.ts"
   },
