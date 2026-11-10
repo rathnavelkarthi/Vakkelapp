@@ -21,8 +21,34 @@ function auth(register=false){if(user){showModal(`<h2 class="modal-title">Your a
  showModal(`<p class="eyebrow">YOUR PRIVATE WORKSPACE</p><h2 class="modal-title">${register?'Start your research journey.':'Welcome to Vakeelapp.'}</h2><p class="modal-copy">${register?'Create a local account to save your legal searches.':'Sign in to keep your research in one place.'}</p><form id="auth-form">${register?'<label class="field">Full name<input name="name" autocomplete="name" maxlength="100" required></label>':''}<label class="field">Email address<input type="email" name="email" autocomplete="email" required></label><label class="field">Password<input type="password" name="password" autocomplete="${register?'new-password':'current-password'}" minlength="12" maxlength="256" required><small>At least 12 characters</small></label><p id="auth-error" class="form-error" role="alert" hidden></p><button class="primary" type="submit">${register?'Create account':'Sign in'}</button><button class="secondary" type="button" id="switch-auth">${register?'Already have an account?':'Create an account'}</button></form>`);
  $('#switch-auth').onclick=()=>auth(!register);$('#auth-form').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector('[type=submit]');button.disabled=true;button.textContent='Please wait…';$('#auth-error').hidden=true;try{const data=await api('/api/auth/'+(register?'register':'login'),{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(form)))});if(register){auth(false);toast(data.message);}else{user=data;syncUser();modal.close();toast('You are signed in.');if(current==='saved')navigate('saved');}}catch(err){$('#auth-error').textContent=err.message;$('#auth-error').hidden=false;}finally{button.disabled=false;button.textContent=register?'Create account':'Sign in';}};
 }
-function syncUser(){$('#profile-name').textContent=user?.name||'Guest workspace';$('#profile-sub').textContent=user?.email||'Sign in to save your work';$('.avatar').textContent=user?.name?.[0]?.toUpperCase()||'G';$('#signin').innerHTML=user?'My account ↗':'Sign in ↗';}
+function syncUser(){$('#profile-name').textContent=user?.name||'Guest workspace';$('#profile-sub').textContent=user?.email||'Sign in to save your work';$('.avatar').textContent=user?.name?.[0]?.toUpperCase()||'G';$('#signin-label').textContent=user?'My account':'Sign in';}
 $('#signin').onclick=()=>auth();$('#profile').onclick=()=>auth();
+const workspaceSidebar = $('#workspace-sidebar');
+const sidebarToggle = $('#sidebar-toggle');
+const compactWorkspace = matchMedia('(max-width: 767px)');
+
+function setSidebarOpen(open) {
+ const restoreFocus = !open && workspaceSidebar.contains(document.activeElement);
+ const label = open ? 'Hide sidebar' : 'Show sidebar';
+ workspaceSidebar.hidden = !open;
+ sidebarToggle.setAttribute('aria-expanded', String(open));
+ sidebarToggle.setAttribute('aria-label', label);
+ sidebarToggle.title = label;
+ if (restoreFocus) sidebarToggle.focus();
+}
+
+setSidebarOpen(!compactWorkspace.matches);
+sidebarToggle.disabled = false;
+sidebarToggle.addEventListener('click', () => {
+ const open = workspaceSidebar.hidden;
+ setSidebarOpen(open);
+ if (open && compactWorkspace.matches) workspaceSidebar.scrollIntoView({ block: 'start' });
+});
+compactWorkspace.addEventListener('change', event => setSidebarOpen(!event.matches));
+workspaceSidebar.addEventListener('keydown', event => {
+ if (event.key === 'Escape') setSidebarOpen(false);
+});
+
 const titles={home:'Overview',search:'Legal search',assistant:'AI legal assistant',statutes:'Acts & legislation',saved:'Saved research',documents:'Document locker',tracking:'Tracked cases',professional:'Professional workspace',sources:'Source transparency'};
 function viewHeader(eyebrow,title,sub){return `<p class="eyebrow">${eyebrow}</p><h1 class="view-title">${title}</h1><p class="view-sub">${sub}</p>`;}
 function navigate(view) {
@@ -62,9 +88,17 @@ async function record(id){try{const r=await api('/api/cases/'+encodeURIComponent
 async function saveSearch(){query=$('#query').value.trim();if(!query)return toast('Enter a search before saving it.');if(!user)return auth();try{await api('/api/saved',{method:'POST',body:JSON.stringify({query})});toast('Search saved to your private workspace.');}catch(e){toast(e.message);}}
 async function renderSaved(){dynamic.innerHTML=viewHeader('YOUR RESEARCH LIBRARY','Good research is worth keeping.','Your saved searches are private to your account.')+'<div id="saved-content" role="status">Loading saved searches…</div>';if(!user){$('#saved-content').innerHTML='<div class="empty-state">'+icon('bookmark')+'<h2>Make room for your next insight.</h2><p>Sign in to save and revisit your searches. Your research is not shared with other accounts.</p><button class="secondary" id="saved-signin">Sign in to your workspace →</button></div>';$('#saved-signin').onclick=()=>auth();return;}const id=++requestId;try{const data=await api('/api/saved');if(id!==requestId)return;$('#saved-content').innerHTML=data.items.length?data.items.map(s=>`<article class="record saved-item"><div><h2>${escape(s.title)}</h2><p>Saved ${escape(new Date(s.created_at).toLocaleDateString())}</p></div><div><button data-saved-query="${escape(s.query)}">Run search →</button><button class="secondary" data-delete="${s.id}">Delete</button></div></article>`).join(''):'<div class="empty-state"><h2>Your library is ready.</h2><p>Save a query from legal search to start your collection.</p><button id="begin" class="secondary">Explore legal search →</button></div>';if($('#begin'))$('#begin').onclick=()=>navigate('search');dynamic.querySelectorAll('[data-saved-query]').forEach(b=>b.onclick=()=>{query=b.dataset.savedQuery;searchType='all';navigate('search');});dynamic.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{showModal('<h2 class="modal-title">Delete saved search?</h2><p class="modal-copy">This removes the search from your private library.</p><button class="primary" id="confirm-delete">Delete search</button><button class="secondary" id="cancel-delete">Keep search</button>');$('#cancel-delete').onclick=()=>modal.close();$('#confirm-delete').onclick=async()=>{try{await api('/api/saved/'+b.dataset.delete,{method:'DELETE',body:'{}'});modal.close();renderSaved();}catch(e){toast(e.message);}};});}catch(e){if(id===requestId)$('#saved-content').innerHTML=`<p class="error-box">${escape(e.message)}</p>`;}}
 async function renderSources(){dynamic.innerHTML=viewHeader('TRUST & TRANSPARENCY','Every record needs a source.','Public availability does not imply unrestricted permission to store or redistribute.')+'<div class="notice">Official and licensed sources are distinguished. No live court connectors are configured; no CAPTCHA or access restrictions are bypassed.</div><div id="sources-content" role="status">Loading source registry…</div>';const id=++requestId;try{const data=await api('/api/sources');if(id!==requestId)return;$('#sources-content').innerHTML=data.sources.length?data.sources.map(s=>`<article class="record"><small>${escape(s.kind)}</small><h2>${escape(s.name)}</h2><p>Usage permission: ${escape(s.permission)}</p><a href="${escape(s.url)}" rel="noopener noreferrer" target="_blank">Source website ↗</a></article>`).join(''):'<div class="empty-state">'+icon('shield')+'<h2>No sources have been imported.</h2><p>The administrator can import records only with a source URL, usage permission, retrieval date, verification date and content checksum. Court connectors require separate authorisation and implementation.</p></div>';}catch(e){if(id===requestId)$('#sources-content').innerHTML=`<p class="error-box">${escape(e.message)}</p>`;}}
-document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{if(b.dataset.view==='search')searchType='all';navigate(b.dataset.view);});document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>navigate(b.dataset.open));
+document.querySelectorAll('[data-view]').forEach(button => {
+ button.onclick = () => {
+   const view = button.dataset.view;
+   if (view === 'search') searchType = 'all';
+   if (compactWorkspace.matches) setSidebarOpen(false);
+   navigate(view);
+ };
+});
+document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>navigate(b.dataset.open));
 $('#main-search').onclick=()=>{searchType=$('input[name=search-category]:checked').value;query=$('#main-query').value.trim();page=1;navigate('search');};$('#main-query').onkeydown=e=>{if(e.key==='Enter')$('#main-search').click();};document.querySelectorAll('[data-query]').forEach(b=>b.onclick=()=>{query=b.dataset.query;searchType='all';page=1;navigate('search');});
-$('#source-status').onclick=()=>navigate('sources');$('#trust-more').onclick=()=>navigate('sources');$('#professional').onclick=()=>navigate('professional');$('#start-saving').onclick=()=>navigate('search');
+$('#trust-more').onclick=()=>navigate('sources');$('#professional').onclick=()=>navigate('professional');$('#start-saving').onclick=()=>navigate('search');
 $('#language').onchange=()=>{const lang=$('#language').value;info(lang==='ta'?'மொழி ஆதரவு':lang==='hi'?'भाषा समर्थन':'Language support','English is available in this foundation release. Full Tamil and Hindi translations and multilingual legal retrieval are not yet implemented. Original legal text will always remain accessible.');$('#language').value='en';};
 const assistantForm = $('#assistant-form');
 const assistantQuestion = $('#ai-question');
@@ -99,6 +133,14 @@ assistantQuestion.addEventListener('keydown', event => {
  }
 });
 assistantForm.querySelector('button[type="submit"]').disabled = false;
+document.querySelectorAll('[data-starter-query]').forEach(button => {
+ button.addEventListener('click', () => {
+   assistantQuestion.value = button.dataset.starterQuery;
+   assistantQuestion.dispatchEvent(new Event('input'));
+   assistantQuestion.focus();
+ });
+ button.disabled = false;
+});
 
 document.addEventListener('keydown', event => {
  if (event.key !== '/' || modal.open || document.activeElement.matches('input, textarea, select, [contenteditable="true"]')) return;
