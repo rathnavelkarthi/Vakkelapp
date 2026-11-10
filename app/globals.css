@@ -1,0 +1,37 @@
+@layer theme, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+:root {
+  --design-display-font: "SF Pro Display", system-ui, -apple-system, sans-serif;
+  --design-body-font: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --design-canvas: #fff;
+  --design-parchment: #f5f5f7;
+  --design-ink: #1d1d1f;
+  --design-muted: #606066;
+  --design-hairline: #e0e0e0;
+  --design-dark-canvas: #161617;
+  --design-dark-tile: #252527;
+  --design-dark-hairline: #424245;
+  --design-action: #0066cc;
+  --design-action-hover: #0059b3;
+  --design-action-on-dark: #2997ff;
+  --design-focus: #0071e3;
+  --design-card-radius: 18px;
+  --design-pill-radius: 9999px;
+}
+
+@theme inline {
+  --color-background: var(--ui-background, #fff);
+  --color-foreground: var(--ink, #202d32);
+  --color-primary: var(--teal, #145c51);
+  --color-primary-foreground: var(--white, #fff);
+  --color-secondary: var(--ground, #f7f9f8);
+  --color-secondary-foreground: var(--ink, #202d32);
+  --color-accent: var(--ground, #f7f9f8);
+  --color-accent-foreground: var(--ink, #202d32);
+  --color-muted-foreground: var(--muted, #64716f);
+  --color-input: var(--border, #e3e8e5);
+  --color-ring: var(--focus-ring, #327d6e);
+  --color-destructive: #b42318;
+}

@@ -1,0 +1,39 @@
+{
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.3.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "12.23.24",
+    "next": "^16.4.6",
+    "radix-ui": "^1.8.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2"
+  },
+  "name": "vakeelapp",
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3001",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 3001",
+    "test": "node --test backend/tests/*.test.ts"
+  },
+  "private": true,
+  "overrides": {
+    "framer-motion": {
+      "motion-dom": "12.23.23",
+      "motion-utils": "12.23.6"
+    }
+  }
+}
